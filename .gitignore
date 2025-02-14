@@ -1,0 +1,22 @@
+# Ignore environment files
+.env
+
+# Ignore Docker-related files
+docker-compose.override.yml
+*.log
+*.pid
+
+# Ignore IDE/editor-specific files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore build artifacts
+node_modules/
+dist/
+build/
