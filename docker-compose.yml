@@ -8,21 +8,36 @@ services:
     env_file:
       - .env
     environment:
-      MAIN_URL: "http://localhost:${POSTIZ_PORT}" # Single entry point for Postiz
-      FRONTEND_URL: "http://localhost:${POSTIZ_PORT}"
-      NEXT_PUBLIC_BACKEND_URL: "http://localhost:${POSTIZ_PORT}/api"
-      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postiz-postgres:${POSTGRES_PORT}/${POSTGRES_DB}"
-      REDIS_URL: "redis://postiz-redis:${REDIS_PORT}"
-      BACKEND_INTERNAL_URL: "http://localhost:${BACKEND_PORT}"
-      IS_GENERAL: "true"
-      STORAGE_PROVIDER: "local"
-      UPLOAD_DIRECTORY: "/uploads"
-      NEXT_PUBLIC_UPLOAD_DIRECTORY: "/uploads"
+      MAIN_URL: "${MAIN_URL}"
+      FRONTEND_URL: "${FRONTEND_URL}"
+      NEXT_PUBLIC_BACKEND_URL: "${NEXT_PUBLIC_BACKEND_URL}/api"
+      DATABASE_URL: "${DATABASE_URL}"
+      REDIS_URL: "redis://postiz-redis:6379"
+      BACKEND_INTERNAL_URL: "${BACKEND_INTERNAL_URL}"
+      IS_GENERAL: "${IS_GENERAL}" # Required for self-hosting.
+      JWT_SECRET: "${JWT_SECRET}"
+      
+      # Storage Configuration
+      STORAGE_PROVIDER: "${STORAGE_PROVIDER}"
+      UPLOAD_DIRECTORY: "${UPLOAD_DIRECTORY}"
+      NEXT_PUBLIC_UPLOAD_DIRECTORY: "${NEXT_PUBLIC_UPLOAD_DIRECTORY}"
+      
+      # Email Configuration (Resend)
+      EMAIL_PROVIDER: "${EMAIL_PROVIDER}"
+      RESEND_API_KEY: "${RESEND_API_KEY}"
+      EMAIL_FROM_NAME: "${EMAIL_FROM_NAME}"
+      EMAIL_FROM_ADDRESS: "${EMAIL_FROM_ADDRESS}"
+      
+      # Social Media Configuration
+      X_API_KEY: "${X_API_KEY}"
+      X_API_SECRET: "${X_API_SECRET}"
+      BLUESKY_IDENTIFIER: "${BLUESKY_IDENTIFIER}"
+      BLUESKY_PASSWORD: "${BLUESKY_PASSWORD}"
     volumes:
       - postiz-config:/config/
-      - postiz-uploads:/uploads/
+      - "${UPLOAD_PATH}"
     ports:
-      - "${POSTIZ_PORT}:${POSTIZ_PORT}" # Single entry point for Postiz
+      - "${POSTIZ_PORT}:${POSTIZ_PORT}"
     networks:
       - postiz-network
     depends_on:
@@ -30,6 +45,12 @@ services:
         condition: service_healthy
       postiz-redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${POSTIZ_PORT}/api/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   postiz-postgres:
     image: postgres:17-alpine
@@ -50,11 +71,14 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+    ports:
+      - "5432:5432"  # Exposed for local development
 
   postiz-redis:
-    image: redis:7.2
+    image: redis:7.2-alpine
     container_name: postiz-redis
     restart: always
+    command: redis-server --appendonly yes
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -64,6 +88,8 @@ services:
       - postiz-redis-data:/data
     networks:
       - postiz-network
+    ports:
+      - "6379:6379"  # Exposed for local development
 
 volumes:
   postgres-volume:
@@ -71,8 +97,6 @@ volumes:
   postiz-redis-data:
     external: false
   postiz-config:
-    external: false
-  postiz-uploads:
     external: false
 
 networks:

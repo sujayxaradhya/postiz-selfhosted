@@ -12,6 +12,8 @@ docker-compose.override.yml
 *.sublime-project
 *.sublime-workspace
 
+config.yml
+
 # Ignore OS-specific files
 .DS_Store
 Thumbs.db
